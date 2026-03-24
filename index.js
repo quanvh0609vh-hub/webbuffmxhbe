@@ -10,19 +10,24 @@ import serviceRoutes from './src/routes/services.js';
 import orderRoutes from './src/routes/orders.js';
 import fundsRoutes from './src/routes/funds.js';
 import adminRoutes from './src/routes/admin.js';
+import supportRoutes from './src/routes/support.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(helmet());
 app.use(cors({
-  origin: process.env.CLIENT_URL
-    ? process.env.CLIENT_URL.split(',')
-    : ['http://localhost:5173', 'https://webbuffmxh.vercel.app'],
+  origin: (origin, cb) => {
+    const allowed = (process.env.CLIENT_URL || 'http://localhost:5173').split(',');
+    if (!origin || allowed.some(u => origin.startsWith(u.replace(/\/$/, '')))) {
+      cb(null, true);
+    } else {
+      cb(null, false);
+    }
+  },
   credentials: true,
 }));
 app.use(express.json({ limit: '10mb' }));
-app.use(passport.initialize());
 app.use(passport.initialize());
 
 app.use('/api/auth', authRoutes);
@@ -31,6 +36,7 @@ app.use('/api/services', serviceRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/funds', fundsRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/support', supportRoutes);
 
 app.get('/api/health', (_, res) => res.json({ status: 'ok' }));
 

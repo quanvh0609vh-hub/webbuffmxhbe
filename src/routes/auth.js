@@ -6,7 +6,22 @@ import { generateToken, protect } from '../middleware/auth.js';
 
 const router = Router();
 
-const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
+const isProduction = process.env.NODE_ENV === 'production';
+
+const getClientUrl = () => {
+  if (isProduction) {
+    const urls = (process.env.CLIENT_URL || 'https://webbuffmxh.vercel.app').split(',');
+    const prod = urls.find(u => u.trim().startsWith('https://'));
+    return prod ? prod.trim() : 'https://webbuffmxh.vercel.app';
+  }
+  return 'http://localhost:5173';
+};
+const clientUrl = getClientUrl();
+
+const callbackURL = isProduction
+  ? (process.env.GOOGLE_CALLBACK_URL || 'https://webbuffmxhbe.onrender.com/api/auth/google/callback')
+  : 'http://localhost:3000/api/auth/google/callback';
+
 const hasGoogleConfig = Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
 
 const toUsernameBase = (value = '') => value
@@ -28,8 +43,6 @@ const generateUniqueUsername = async (displayName, email) => {
 
   return username;
 };
-
-const callbackURL = process.env.GOOGLE_CALLBACK_URL || 'http://localhost:3000/api/auth/google/callback';
 
 if (hasGoogleConfig) {
   passport.use(
@@ -115,16 +128,29 @@ router.get('/google', (req, res, next) => {
 });
 
 router.get('/google/callback', (req, res, next) => {
+  console.log('[Google CB] Env:', isProduction ? 'production' : 'development');
+  console.log('[Google CB] Client URL:', clientUrl);
+  console.log('[Google CB] Callback URL:', callbackURL);
+  console.log('[Google CB] Auth code:', req.query?.code ? 'present' : 'missing');
+
   if (!hasGoogleConfig) {
+    console.log('[Google CB] Not configured');
     return res.redirect(`${clientUrl}/login?error=google_not_configured`);
   }
 
   return passport.authenticate('google', { session: false, callbackURL }, (err, user) => {
+    if (err) {
+      console.log('[Google CB] Passport error:', err.message || JSON.stringify(err.response?.data || err));
+    }
+    console.log('[Google CB] User:', user ? `Found (${user.email})` : 'Missing');
+
     if (err || !user) {
+      console.log('[Google CB] Auth failed');
       return res.redirect(`${clientUrl}/login?error=auth_failed`);
     }
 
     const token = generateToken(user._id);
+    console.log('[Google CB] Token generated, redirecting');
     return res.redirect(`${clientUrl}/auth/success?token=${encodeURIComponent(token)}`);
   })(req, res, next);
 });

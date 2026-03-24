@@ -37,35 +37,6 @@ router.get('/cloudinary/status', protect, async (_req, res) => {
   }
 });
 
-router.get('/cloudinary/status', protect, async (_req, res) => {
-  try {
-    const hasCloudinaryUrl = Boolean(process.env.CLOUDINARY_URL);
-    const hasSplitCloudinaryConfig = Boolean(
-      process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET
-    );
-
-    if (!hasCloudinaryUrl && !hasSplitCloudinaryConfig) {
-      return res.status(500).json({ success: false, message: 'Thiếu cấu hình Cloudinary' });
-    }
-
-    const ping = await cloudinary.api.ping();
-
-    return res.json({
-      success: true,
-      data: {
-        status: ping?.status || 'ok',
-        cloudName: cloudinary.config().cloud_name || null,
-      },
-    });
-  } catch (err) {
-    return res.status(500).json({
-      success: false,
-      message: 'Cloudinary connection failed',
-      error: err.message,
-    });
-  }
-});
-
 router.post('/avatar/upload', protect, async (req, res) => {
   try {
     const { image } = req.body;

@@ -207,4 +207,42 @@ router.post('/transactions/cancel', async (req, res) => {
   }
 });
 
+// Admin settings (GET/PUT) - returns/persists via env-like config stored in-memory for now
+// For a real app, you'd want a dedicated Settings model or config file
+const siteSettings = {
+  siteName: process.env.SITE_NAME || 'webbuffMXH',
+  siteUrl: process.env.SITE_URL || 'https://webbuffmxh.vercel.app',
+  supportEmail: process.env.SUPPORT_EMAIL || 'support@webbuffmxh.com',
+  minDeposit: parseFloat(process.env.MIN_DEPOSIT || '5'),
+  minOrder: parseFloat(process.env.MIN_ORDER || '1'),
+  referralBonus: parseFloat(process.env.REFERRAL_BONUS || '5'),
+  maintenanceMode: false,
+};
+
+router.get('/settings', async (req, res) => {
+  res.json({ success: true, data: { settings: siteSettings } });
+});
+
+router.put('/settings', async (req, res) => {
+  const { siteName, siteUrl, supportEmail, minDeposit, minOrder, referralBonus, maintenanceMode } = req.body;
+  if (siteName !== undefined) siteSettings.siteName = siteName;
+  if (siteUrl !== undefined) siteSettings.siteUrl = siteUrl;
+  if (supportEmail !== undefined) siteSettings.supportEmail = supportEmail;
+  if (minDeposit !== undefined) siteSettings.minDeposit = parseFloat(minDeposit);
+  if (minOrder !== undefined) siteSettings.minOrder = parseFloat(minOrder);
+  if (referralBonus !== undefined) siteSettings.referralBonus = parseFloat(referralBonus);
+  if (maintenanceMode !== undefined) siteSettings.maintenanceMode = maintenanceMode;
+  res.json({ success: true, data: { settings: siteSettings } });
+});
+
+router.post('/seed', async (req, res) => {
+  try {
+    const { seedServices } = require('../services/seedData.js');
+    await seedServices();
+    res.json({ success: true, message: 'Dữ liệu mẫu đã được tạo' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 export default router;
